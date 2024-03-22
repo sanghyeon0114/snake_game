@@ -16,6 +16,8 @@ using namespace std;
 #define SNAKE_BODY_STRING "■"
 #define APPLE_STRING "●"
 
+bool isStop = false;
+
 int x = BOARD_SIZE/2;
 int y = BOARD_SIZE/2;
 int score = 0;
@@ -50,6 +52,9 @@ void handleInput() {
     }
     if (console::key(console::K_DOWN)) {
         direction = D_DOWN;
+    }
+    if (console::key(console::K_ESC)) {
+        isStop = true;
     }
 }
 
@@ -102,7 +107,7 @@ void initGame() {
     snakeBodyLength = 0;
 }
 
-bool isEndGame() {
+bool isLoseGame() {
     if(x <= 0 || y <= 0 || x >= BOARD_SIZE-1 || y >= BOARD_SIZE-1) {
         return true;
     }
@@ -114,6 +119,10 @@ bool isEndGame() {
         }
     }
     return false;
+}
+
+bool isESC() {
+    return isStop;
 }
 
 void loseMessage() {
@@ -146,22 +155,25 @@ void game() {
 
         drawMap();
         drawScore();
-
+        
         handleInput();
         restrictInScreen();
-        drawSnake();
 
         if(frame % MOVE_DELAY == 0) {
             moveSnake();
             frame = 0;
-        }
-        if(isEndGame()) {
-            loseMessage();
-            break;
-        }
+        }  
+        drawSnake();
         
         frame++;
         console::wait();
+
+        if(isLoseGame()) {
+            loseMessage();
+            break;
+        } else if(isESC()) {
+            break;
+        }
     }
 }
 
@@ -176,7 +188,7 @@ int main() {
 
         if(console::key(console::K_ENTER)) {
             isStart = true;
-        } else if(console::key(console::K_ESC)) {
+        } else if(isStop || console::key(console::K_ESC)) {
             break;
         }
 
