@@ -1,5 +1,8 @@
 #include "console.h"
 
+#include <iostream>
+#include <stdlib.h>
+#include <time.h>
 #include <string.h>
 
 using namespace std;
@@ -28,6 +31,12 @@ int direction = D_RIGHT;
 int snakeBody[((BOARD_SIZE-2) * (BOARD_SIZE-2))-1][2];
 int snakeBodyLength = 0;
 
+int applePosition[2] = {-1, -1};
+
+bool validSnakePath(int snakeX, int snakeY) {
+    return !(snakeBodyLength > 0 && snakeX == snakeBody[0][0] && snakeY == snakeBody[0][1]);
+}
+
 void moveSnake() {
     if(direction == D_RIGHT) {
         x++;
@@ -41,16 +50,16 @@ void moveSnake() {
 }
 
 void handleInput() {
-    if (console::key(console::K_LEFT)) {
+    if (console::key(console::K_LEFT) && validSnakePath(x-1, y)) {
         direction = D_LEFT;
     }
-    if (console::key(console::K_RIGHT)) {
+    if (console::key(console::K_RIGHT) && validSnakePath(x+1, y)) {
         direction = D_RIGHT;
     }
-    if (console::key(console::K_UP)) {
+    if (console::key(console::K_UP) && validSnakePath(x, y-1)) {
         direction = D_UP;
     }
-    if (console::key(console::K_DOWN)) {
+    if (console::key(console::K_DOWN) && validSnakePath(x, y+1)) {
         direction = D_DOWN;
     }
     if (console::key(console::K_ESC)) {
@@ -93,6 +102,38 @@ void drawScore() {
     console::draw(BOARD_SIZE/2 - viewScore.length()/2, BOARD_SIZE, viewScore);
 }
 
+void randomApple() {
+    srand(time(NULL));
+    applePosition[0] = rand() % (BOARD_SIZE-2) + 1;
+    applePosition[1] = rand() % (BOARD_SIZE-2) + 1;
+}
+
+void drawApple() {
+    console::draw(applePosition[0], applePosition[1], APPLE_STRING);
+}
+
+void getApple() {
+    if(x == applePosition[0] && y == applePosition[1]) {
+        snakeBodyLength++;
+        randomApple();
+    }
+}
+
+void moveSnakeBody() {
+    for(int i = snakeBodyLength-1; i > 0; i--) {
+        snakeBody[i][0] = snakeBody[i-1][0];
+        snakeBody[i][1] = snakeBody[i-1][1];
+    }
+    snakeBody[0][0] = x;
+    snakeBody[0][1] = y;
+}
+
+void drawSnakeBody() {
+    for(int i = 0; i < snakeBodyLength; i++) {
+        console::draw(snakeBody[i][0], snakeBody[i][1], SNAKE_BODY_STRING);
+    }
+}
+
 void initGame() {
     x = BOARD_SIZE/2;
     y = BOARD_SIZE/2;
@@ -133,20 +174,10 @@ void loseMessage() {
 }
 
 void game() {
-    // int map[BOARD_SIZE][BOARD_SIZE];
-
-    // for(int i = 0; i < BOARD_SIZE; i++) {
-    //     for(int j = 0; j < BOARD_SIZE; j++) {
-    //         if(i == 0 || j == 0 || i == BOARD_SIZE-1 || j == BOARD_SIZE-1) {
-    //             map[i][j] = 1;
-    //         } else {
-    //             map[i][j] = 0;
-    //         }
-    //     }
-    // }
-
     initGame();
     console::init();
+
+    randomApple();
 
     int frame = 0;
 
@@ -155,16 +186,20 @@ void game() {
 
         drawMap();
         drawScore();
-        
+        drawApple();
         handleInput();
         restrictInScreen();
 
         if(frame % MOVE_DELAY == 0) {
+            moveSnakeBody();
             moveSnake();
+            getApple();
             frame = 0;
-        }  
+        }
+
+        drawSnakeBody();
         drawSnake();
-        
+
         frame++;
         console::wait();
 
