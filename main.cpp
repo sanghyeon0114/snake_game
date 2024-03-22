@@ -31,6 +31,7 @@ int direction = D_RIGHT;
 int snakeBody[((BOARD_SIZE-2) * (BOARD_SIZE-2))-1][2];
 int snakeBodyLength = 0;
 
+// Todo : 사과 뱀 위치가 아닌 곳에 랜덤 생성.
 int applePosition[2] = {-1, -1};
 
 bool validSnakePath(int snakeX, int snakeY) {
@@ -98,7 +99,7 @@ void drawMap() {
 
 void drawScore() {
     string viewScore = "Score: ";
-    viewScore.append(1, (char)(score + 48));
+    viewScore.append(to_string(score));
     console::draw(BOARD_SIZE/2 - viewScore.length()/2, BOARD_SIZE, viewScore);
 }
 
@@ -112,11 +113,19 @@ void drawApple() {
     console::draw(applePosition[0], applePosition[1], APPLE_STRING);
 }
 
-void getApple() {
-    if(x == applePosition[0] && y == applePosition[1]) {
+bool getApple() {
+    if(
+        (direction == D_RIGHT && x+1 == applePosition[0] && y == applePosition[1]) || 
+        (direction == D_LEFT && x-1 == applePosition[0] && y == applePosition[1]) ||
+        (direction == D_UP && x == applePosition[0] && y-1 == applePosition[1])||
+        (direction == D_DOWN && x == applePosition[0] && y+1 == applePosition[1])
+    ) {
         snakeBodyLength++;
         randomApple();
+        score+=10;
+        return true;
     }
+    return false;
 }
 
 void moveSnakeBody() {
@@ -162,12 +171,26 @@ bool isLoseGame() {
     return false;
 }
 
+bool isWinGame() {
+    if(score == (BOARD_SIZE-2)*(BOARD_SIZE-2)*10) {
+        return true;
+    }
+    return false;
+}
+
 bool isESC() {
     return isStop;
 }
 
 void loseMessage() {
     string message1 = "YOU LOSE!";
+    string message2 = "Try again? (Enter)";
+    console::draw(BOARD_SIZE/2 - message1.length()/2, BOARD_SIZE/2, message1);
+    console::draw(BOARD_SIZE/2 - message2.length()/2, BOARD_SIZE/2+1, message2);
+}
+
+void winMessage() {
+    string message1 = "YOU WIN!";
     string message2 = "Try again? (Enter)";
     console::draw(BOARD_SIZE/2 - message1.length()/2, BOARD_SIZE/2, message1);
     console::draw(BOARD_SIZE/2 - message2.length()/2, BOARD_SIZE/2+1, message2);
@@ -191,9 +214,9 @@ void game() {
         restrictInScreen();
 
         if(frame % MOVE_DELAY == 0) {
+            getApple();
             moveSnakeBody();
             moveSnake();
-            getApple();
             frame = 0;
         }
 
@@ -207,6 +230,9 @@ void game() {
             loseMessage();
             break;
         } else if(isESC()) {
+            break;
+        } else if(isWinGame()) {
+            winMessage();
             break;
         }
     }
