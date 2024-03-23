@@ -32,6 +32,9 @@ int snakeBody[((BOARD_SIZE-2) * (BOARD_SIZE-2))-1][2];
 int snakeBodyLength = 0;
 
 // Todo : 사과 뱀 위치가 아닌 곳에 랜덤 생성.
+int map[BOARD_SIZE][BOARD_SIZE];
+int randomPosition[(BOARD_SIZE-2)*(BOARD_SIZE-2)][2];
+
 int applePosition[2] = {-1, -1};
 
 bool validSnakePath(int snakeX, int snakeY) {
@@ -104,24 +107,53 @@ void drawScore() {
 }
 
 void randomApple() {
-    srand(time(NULL));
-    applePosition[0] = rand() % (BOARD_SIZE-2) + 1;
-    applePosition[1] = rand() % (BOARD_SIZE-2) + 1;
+    for(int i = 0; i < BOARD_SIZE; i++) {
+        for(int j = 0; j < BOARD_SIZE; j++) {
+            map[i][j] = 1;
+        }
+    }
+
+    map[x][y] = 0;
+
+    for(int i = 0; i < snakeBodyLength; i++) {
+        map[snakeBody[i][0]][snakeBody[i][1]] = 0;
+    }
+
+    int index = 0;
+    for(int i = 1; i < BOARD_SIZE-1; i++) {
+        for(int j = 1; j < BOARD_SIZE-1; j++) {
+            if(map[i][j] == 1) {
+                randomPosition[index][0] = i;
+                randomPosition[index++][1] = j;
+            }
+        }
+    }
+
+    if(index == 0) {
+        applePosition[0] = -1;
+        applePosition[1] = -1;
+    } else {
+        srand(time(NULL));
+        int random = rand() % index;
+        applePosition[0] = randomPosition[random][0];
+        applePosition[1] = randomPosition[random][1];
+    }
 }
 
 void drawApple() {
-    console::draw(applePosition[0], applePosition[1], APPLE_STRING);
+    if(applePosition[0] > 0 && applePosition[0] < BOARD_SIZE-1 && applePosition[1] > 0 && applePosition[1] < BOARD_SIZE-1) {
+        console::draw(applePosition[0], applePosition[1], APPLE_STRING);
+    }
 }
 
 bool getApple() {
     if(
         (direction == D_RIGHT && x+1 == applePosition[0] && y == applePosition[1]) || 
         (direction == D_LEFT && x-1 == applePosition[0] && y == applePosition[1]) ||
-        (direction == D_UP && x == applePosition[0] && y-1 == applePosition[1])||
+        (direction == D_UP && x == applePosition[0] && y-1 == applePosition[1]) ||
         (direction == D_DOWN && x == applePosition[0] && y+1 == applePosition[1])
     ) {
         snakeBodyLength++;
-        randomApple();
         score+=10;
         return true;
     }
@@ -172,7 +204,7 @@ bool isLoseGame() {
 }
 
 bool isWinGame() {
-    if(score == (BOARD_SIZE-2)*(BOARD_SIZE-2)*10) {
+    if(score == (BOARD_SIZE-2)*(BOARD_SIZE-2)*10-10) {
         return true;
     }
     return false;
@@ -208,24 +240,26 @@ void game() {
         console::clear();
 
         drawMap();
-        drawScore();
         drawApple();
         handleInput();
         restrictInScreen();
 
-        if(frame % MOVE_DELAY == 0) {
-            getApple();
-            moveSnakeBody();
-            moveSnake();
+        if(frame % MOVE_DELAY == MOVE_DELAY-1) {
+            if(getApple()) {
+                moveSnakeBody();
+                moveSnake();
+                randomApple();
+            } else {
+                moveSnakeBody();
+                moveSnake();
+            }
             frame = 0;
         }
 
+        drawScore();
         drawSnakeBody();
         drawSnake();
-
-        frame++;
-        console::wait();
-
+        
         if(isLoseGame()) {
             loseMessage();
             break;
@@ -235,6 +269,9 @@ void game() {
             winMessage();
             break;
         }
+
+        frame++;
+        console::wait();
     }
 }
 
